@@ -45,10 +45,20 @@ def load_model():
     model = CellGNN(in_channels=input_dim, hidden_channels=64, out_channels=3)
     
     # Load weights if checkpoint exists
-    # checkpoint_path = "checkpoints/cell_model.ckpt"
-    # if os.path.exists(checkpoint_path):
-    #     checkpoint = torch.load(checkpoint_path)
-    #     model.load_state_dict(checkpoint['state_dict'])
+    checkpoint_path = "../outputs/cell_model.ckpt"
+    if os.path.exists(checkpoint_path):
+        try:
+            # Load with weights_only=False if needed for legacy Lightning checkpoints, 
+            # ideally we migrate to state_dict only save.
+            checkpoint = torch.load(checkpoint_path, weights_only=False)
+            # Handle Lightning 'state_dict' key and 'model.' prefix
+            state_dict = {k.replace('model.', ''): v for k, v in checkpoint['state_dict'].items()}
+            model.load_state_dict(state_dict)
+            print(f"Model loaded from {checkpoint_path}")
+        except Exception as e:
+            print(f"Failed to load checkpoint: {e}")
+    else:
+        print(f"Warning: Checkpoint not found at {checkpoint_path}. Using random weights.")
     
     model.eval()
     print("Model loaded.")

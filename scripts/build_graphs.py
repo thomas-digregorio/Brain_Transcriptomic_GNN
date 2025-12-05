@@ -1,7 +1,7 @@
 """
 Script to build graphs from processed data.
 Usage:
-    python scripts/build_graphs.py --input data/processed/rosmap_proc.h5ad --out_dir data/processed/graphs
+    python scripts/build_graphs.py --input data/processed/sea_ad_proc.h5ad --out_dir data/processed/graphs
 """
 
 import argparse
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", type=str, default="data/processed/rosmap_proc.h5ad")
+    parser.add_argument("--input", type=str, default="data/processed/sea_ad_proc.h5ad")
     parser.add_argument("--out_dir", type=str, default="data/processed/graphs")
     args = parser.parse_args()
     

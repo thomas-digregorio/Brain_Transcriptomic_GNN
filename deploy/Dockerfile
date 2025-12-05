@@ -1,3 +1,8 @@
+# Usage:
+# From the root of the repository:
+# docker build -f deploy/Dockerfile -t brain-gnn-app .
+# docker run -p 8000:8000 brain-gnn-app
+
 # Use an official PyTorch runtime as a parent image
 FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
 
@@ -7,20 +12,20 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y git build-essential
 
 # Install python dependencies
-# We copy requirements first to leverage Docker cache
+# We copy environment.yml from root
 COPY environment.yml .
-# Note: Installing via conda in docker can be slow/large. 
-# Ideally we export to requirements.txt, but here we use conda for consistency.
 RUN conda env create -f environment.yml
 
-# Activate environment
+# Check if we need to modify the SHELL to activate the env for subsequent commands
+# (The previous SHELL instruction does this for RUN commands)
 SHELL ["conda", "run", "-n", "brain-gnn", "/bin/bash", "-c"]
 
-# Copy the rest of the application
+# Copy everything from root (build context should be root)
 COPY . .
 
 # Expose port for API
 EXPOSE 8000
 
 # Command to run the API
-CMD ["uvicorn", "deploy.fastapi_app:app", "--host", "0.0.0.0", "--port", "8000"]
+# explicit path to python in the env or use conda run
+CMD ["conda", "run", "--no-capture-output", "-n", "brain-gnn", "uvicorn", "deploy.fastapi_app:app", "--host", "0.0.0.0", "--port", "8000"]

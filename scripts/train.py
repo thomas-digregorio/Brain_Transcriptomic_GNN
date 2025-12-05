@@ -40,7 +40,12 @@ def main():
         # data.x shape: [num_nodes, num_features]
         in_channels = data.num_features
         hidden_channels = 64
-        out_channels = 3 # 0,1,2 classes
+        # Dynamically determine number of classes
+        if data.y is not None:
+             out_channels = len(torch.unique(data.y))
+        else:
+             out_channels = 3 # Default fallback
+        print(f"Initializing CellGNN with {out_channels} output classes")
         
         backbone = CellGNN(in_channels, hidden_channels, out_channels)
         task = 'classification'
@@ -63,7 +68,9 @@ def main():
     trainer.fit(module, loader)
     
     # Save checkpoint
-    # trainer.save_checkpoint(f"checkpoints/{args.model}_model.ckpt")
+    os.makedirs("outputs", exist_ok=True)
+    trainer.save_checkpoint(f"outputs/{args.model}_model.ckpt")
+    print(f"Model saved to outputs/{args.model}_model.ckpt")
 
 if __name__ == "__main__":
     import logging
