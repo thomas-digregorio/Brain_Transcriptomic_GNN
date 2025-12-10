@@ -1,6 +1,5 @@
 # brain-gnn-transcriptomics: GNNs on Single-Cell Human Brain Data for AD/CNS Insights
 
-![Project Banner](https://img.shields.io/badge/Status-Active-success) ![Python](https://img.shields.io/badge/Python-3.9%2B-blue) ![PyTorch](https://img.shields.io/badge/PyTorch-2.0-orange) ![License](https://img.shields.io/badge/License-MIT-green)
 
 ## Project Overview
 **One-liner:** A **GPU-accelerated**, scalable Graph Neural Network (GNN) pipeline designed to analyze **1.2 million+ single cells** from the **Seattle Alzheimer’s Disease Brain Cell Atlas (SEA-AD)**.
