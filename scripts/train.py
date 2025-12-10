@@ -7,11 +7,15 @@ Usage:
 """
 
 import argparse
+import sys
+import os
+
+# Fix OpenMP conflict on Windows
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import torch
 import pytorch_lightning as pl
 from torch_geometric.loader import DataLoader
-import sys
-import os
 
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -27,9 +31,15 @@ def main():
     parser.add_argument("--batch_size", type=int, default=1) # Full match often uses batch_size=1
     args = parser.parse_args()
     
+    
     # Load Data
     print(f"Loading data from {args.data_path}...")
-    data = torch.load(args.data_path)
+    # PyTorch 2.6+ default weights_only=True breaks complex objects like PyG Data
+    try:
+        data = torch.load(args.data_path, weights_only=False)
+    except TypeError:
+        # Fallback for older PyTorch versions where weights_only arg doesn't exist
+        data = torch.load(args.data_path)
     
     # For full-graph training (transductive), we often treat the whole graph as one 'batch' instance
     # DataLoader with batch_size=1
@@ -47,7 +57,8 @@ def main():
              out_channels = 3 # Default fallback
         print(f"Initializing CellGNN with {out_channels} output classes")
         
-        backbone = CellGNN(in_channels, hidden_channels, out_channels)
+        # REDUCED COMPLEXITY: heads=1 to fit 1M nodes on 16GB GPU
+        backbone = CellGNN(in_channels, hidden_channels, out_channels, heads=1)
         task = 'classification'
     else:
         in_channels = data.x.shape[1]
@@ -61,7 +72,8 @@ def main():
         max_epochs=args.epochs,
         accelerator='auto',
         devices='auto',
-        log_every_n_steps=1
+        log_every_n_steps=1,
+        precision='16-mixed' # FIX: Critical for memory savings on large graphs
     )
     
     print("Starting training...")

@@ -13,6 +13,8 @@ import scanpy as sc
 import torch
 import sys
 import os
+import numpy as np
+import scipy.sparse as sp
 
 # Add src to path to import graph_builder
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -20,6 +22,7 @@ from src.data.graph_builder import build_cell_graph, build_gene_graph
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -35,17 +38,26 @@ def main():
         logger.error(f"Input {input_path} does not exist.")
         return
 
-    logger.info("Loading processed AnnData...")
-    adata = sc.read_h5ad(input_path)
+    logger.info(f"Loading processed AnnData from {input_path} (backed='r')...")
+    # Strict mode: Preprocessing issues should be fixed upstream
+    adata = sc.read_h5ad(input_path, backed='r')
+    
+    if 'highly_variable' not in adata.var.columns:
+        logger.error("'highly_variable' genes not found. Preprocessing incomplete.")
+        return
     
     # 1. Build Cell Graph
-    cell_graph = build_cell_graph(adata)
+    if 'X_pca' not in adata.obsm:
+        logger.error("X_pca not found in adata.obsm. Please run preprocessing first.")
+        return
+
+    cell_graph = build_cell_graph(adata, use_rep='X_pca')
     torch.save(cell_graph, out_dir / "cell_graph.pt")
     logger.info(f"Saved cell_graph.pt to {out_dir}")
     
     # 2. Build Gene Graph
     # Note: Threshold is a hyperparam.
-    gene_graph = build_gene_graph(adata, threshold=0.15) # Low threshold for demo to ensure edges
+    gene_graph = build_gene_graph(adata, threshold=0.15) 
     torch.save(gene_graph, out_dir / "gene_graph.pt")
     logger.info(f"Saved gene_graph.pt to {out_dir}")
 

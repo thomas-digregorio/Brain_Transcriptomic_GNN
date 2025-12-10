@@ -145,54 +145,102 @@ def subset_and_save(adata_src, output_file, mask_obs):
     logging.info("Subset complete.")
     return output_file
 
-def select_hvg_manual(adata, n_top_genes=2000, batch_size=10000):
+def select_hvg_gpu(adata, n_top_genes=2000, batch_size=10000):
     """
-    Manually select HVGs using a chunked pass to avoid Scanpy/Numpy errors on backed data.
-    Approximation of Cell Ranger / Seurat flavor (Dispersion based).
+    Selects Highly Variable Genes using GPU acceleration (PyTorch).
+    Calculates Mean and Dispersion (Variance/Mean) in chunks.
+    Replaces slow CPU-based scan.
     """
-    logging.info("Running Manual Chunked HVG Selection...")
+    import torch
+    
+    if not torch.cuda.is_available():
+        logging.warning("No GPU for HVG selection. Falling back to CPU manual scan.")
+        # We could keep the CPU fallback here or fail. 
+        # Given the "GPU Pipeline" goal, we should fail or warn heavily.
+        return select_hvg_manual(adata, n_top_genes)
+
+    device = torch.device("cuda")
+    logging.info(f"Running GPU HVG Selection on {device}...")
+    
     n_vars = adata.n_vars
     n_cells = adata.n_obs
     
-    sum_x = np.zeros(n_vars, dtype=np.float64)
-    sum_sq_x = np.zeros(n_vars, dtype=np.float64)
+    # Accumulators (Float64 for stability)
+    sum_x = torch.zeros(n_vars, device=device, dtype=torch.float64)
+    sum_sq_x = torch.zeros(n_vars, device=device, dtype=torch.float64)
     
+    # Iterate in chunks
     for i in range(0, n_cells, batch_size):
-        end = min(i+batch_size, n_cells)
+        end = min(i + batch_size, n_cells)
+        
+        # Load chunk (CPU)
         chunk = adata.X[i:end]
         if sp.issparse(chunk):
             chunk = chunk.toarray()
             
-        counts = chunk.sum(axis=1, keepdims=True)
-        counts[counts==0] = 1
-        chunk = (chunk / counts) * 1e4
-        chunk = np.log1p(chunk)
+        # Move to GPU
+        x_batch = torch.from_numpy(chunk).to(device, dtype=torch.float32)
         
-        sum_x += chunk.sum(axis=0)
-        sum_sq_x += (chunk ** 2).sum(axis=0)
+        # Normalize (Log1p) on GPU - mimics Seurat/CellRanger Flavor
+        # norm = (count / total) * 10000 -> log1p
+        scaling_factor = 10000.0
+        row_sums = x_batch.sum(dim=1, keepdim=True)
+        row_sums[row_sums == 0] = 1.0
+        x_batch.div_(row_sums).mul_(scaling_factor).log1p_()
+        
+        x_batch_64 = x_batch.double()
+        
+        # Update Stats
+        sum_x += x_batch_64.sum(dim=0)
+        sum_sq_x += (x_batch_64 ** 2).sum(dim=0)
         
         if i % 100000 == 0:
-            logging.info(f"HVG Scan {i}/{n_cells}...")
-
-    mean = sum_x / n_cells
-    var = (sum_sq_x / n_cells) - (mean ** 2)
+            logging.info(f"  HVG Scan {i}/{n_cells}...")
+            
+    # Finalize Stats
+    mean = (sum_x / n_cells).cpu().numpy()
+    mean_sq = (sum_sq_x / n_cells).cpu().numpy()
+    var = mean_sq - (mean ** 2)
+    
+    # Calculate Dispersion (Var / Mean)
+    # Handle zeros: if mean is very small, dispersion is typically 0 or ignored
     dispersion = np.zeros_like(mean)
     np.divide(var, mean, out=dispersion, where=mean > 1e-12)
     
+    # Filter very low expression genes (noise)
     valid_genes = mean > 0.0125
     dispersion[~valid_genes] = -1.0
     
+    # Select Top N
     top_indices = np.argsort(dispersion)[-n_top_genes:]
     
-    adata.var['highly_variable'] = False
+    # Construct Results
+    hvg_mask = np.zeros(n_vars, dtype=bool)
+    hvg_mask[top_indices] = True
+    
+    adata.var['highly_variable'] = hvg_mask
     adata.var['means'] = mean
     adata.var['dispersions'] = dispersion
     
-    hvg_mask = np.zeros(n_vars, dtype=bool)
-    hvg_mask[top_indices] = True
-    adata.var['highly_variable'] = hvg_mask
+    logging.info(f"Selected {n_top_genes} HVGs on GPU.")
     
-    logging.info(f"Selected {n_top_genes} HVGs manually.")
+    # EXPLICITLY SAVE TO FILE using write_elem (Scanpy/AnnData compatible)
+    if adata.isbacked and adata.filename:
+        logging.info("Explicitly saving HVG metadata to HDF5 file (using write_elem)...")
+        from anndata.experimental import write_elem
+        # We need to ensure we write the WHOLE .var dataframe to be safe
+        try:
+            with h5py.File(adata.filename, 'r+') as f:
+                # Delete existing 'var' to allow full overwrite
+                if 'var' in f: 
+                    del f['var']
+                
+                # Write the updated .var dataframe from adata
+                write_elem(f, "var", adata.var)
+                
+            logging.info("HVG metadata securely saved via write_elem.")
+        except Exception as e:
+             logging.error(f"Failed to save HVG metadata: {e}")
 
 # =============================================================================
 # GPU PCA IMPLEMENTATION (PyTorch)
@@ -497,9 +545,9 @@ def main():
     # 6. HVGs
     if 'highly_variable' not in adata.var.columns:
         try:
-            select_hvg_manual(adata, n_top_genes=2000)
+            select_hvg_gpu(adata, n_top_genes=2000)
         except Exception as e:
-            logging.error(f"Manual HVG failed: {e}")
+            logging.error(f"GPU HVG failed: {e}")
             return
     else:
         logging.info("HVGs already present.")
