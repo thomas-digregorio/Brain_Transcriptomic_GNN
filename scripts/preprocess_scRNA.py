@@ -16,6 +16,10 @@ def subset_and_save(adata_src, output_file, mask_obs):
     """
     Creates a new backed h5ad file containing only the cells in mask_obs.
     Copies data chunk-by-chunk to avoid memory spikes.
+    
+    Why this is needed:
+    Standard AnnData slicing (adata[mask]) triggers a full loaded memory copy, which explodes RAM
+    usage on large datasets (1M+ cells). This manual chunked writer keeps memory usage constant (O(1)).
     """
     logging.info(f"Creating subsetted file: {output_file}")
     
@@ -150,6 +154,12 @@ def select_hvg_gpu(adata, n_top_genes=2000, batch_size=10000):
     Selects Highly Variable Genes using GPU acceleration (PyTorch).
     Calculates Mean and Dispersion (Variance/Mean) in chunks.
     Replaces slow CPU-based scan.
+    
+    Method:
+    1. Iterates over the dataset in chunks (batch_size).
+    2. Moves each chunk to the GPU.
+    3. Normalizes counts (log1p) in parallel.
+    4. Accumulates Sum and Sum-of-Squares (float64) for accurate online variance calculation.
     """
     import torch
     
@@ -248,6 +258,12 @@ def run_gpu_pca(adata, n_components=50, batch_size=20000, output_file=None):
     Performs PCA using PyTorch on the GPU via the Covariance Method (X^T X).
     Uses Double Precision (float64) for stability.
     DIRECTLY writes to HDF5 to ensure persistence.
+    
+    Why Covariance Method?
+    Standard PCA/SVD (sklearn) requires loading the full X matrix into RAM.
+    This streaming approach accumulates the X^T X covariance matrix (n_vars x n_vars)
+    batch-by-batch. Since n_vars (~30k) is fixed, memory usage is constant regardless
+    of cell count (n_cells).
     """
     import torch
     

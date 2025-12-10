@@ -1,6 +1,5 @@
 # brain-gnn-transcriptomics: GNNs on Single-Cell Human Brain Data for AD/CNS Insights
 
-
 ## Project Overview
 **One-liner:** A **GPU-accelerated**, scalable Graph Neural Network (GNN) pipeline designed to analyze **1.2 million+ single cells** from the **Seattle Alzheimer’s Disease Brain Cell Atlas (SEA-AD)**.
 
@@ -47,9 +46,8 @@ brain-gnn-transcriptomics/
 ## Getting Started
 
 ### Prerequisites
-- Python 3.9+
+- Python 3.12 (Matched to environment.yml)
 - **CUDA-enabled GPU** (Required for acceleration steps)
-- 32GB+ RAM (Recommended for OS caching)
 
 ### Installation
 1. Clone the repository:
@@ -90,7 +88,6 @@ python scripts/build_graphs.py
 #### 4. Training (Distributed)
 Train the GNN model using PyTorch Lightning:
 ```bash
-# Trains for 5000 epochs to ensure convergence
 python scripts/train.py --model cell --data_path data/processed/graphs/cell_graph.pt --epochs 5000
 ```
 
