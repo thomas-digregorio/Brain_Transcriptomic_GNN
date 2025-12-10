@@ -1,5 +1,7 @@
 """
-Script to build graphs from processed data.
+Graph Building Script
+---------------------
+Constructs Cell-Cell (KNN) and Gene-Gene (Co-expression) graphs from processed data.
 Usage:
     python scripts/build_graphs.py --input data/processed/sea_ad_proc.h5ad --out_dir data/processed/graphs
 """

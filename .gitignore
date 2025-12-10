@@ -14,7 +14,7 @@ env.bak/
 venv.bak/
 
 # Data (Exclude large files)
-data/
+/data/
 outputs/
 lightning_logs/
 wandb/

@@ -1,8 +1,15 @@
+"""
+Download SEA-AD Data Script
+---------------------------
+Downloads the SEA-AD dataset from a public S3 bucket.
+Usage:
+    python scripts/download_sea_ad.py
+"""
 
-import requests
 import os
 import argparse
 import sys
+import requests
 from tqdm import tqdm
 
 # Hardcoded key from S3 listing (MTG dataset)

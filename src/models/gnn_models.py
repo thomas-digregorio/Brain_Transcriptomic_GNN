@@ -1,3 +1,9 @@
+"""
+GNN Models Module
+-----------------
+Defines PyTorch Geometric GNN architectures for cell and gene graphs.
+"""
+
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv, GATConv, global_mean_pool

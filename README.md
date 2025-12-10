@@ -19,7 +19,7 @@ This project demonstrates an end-to-end "AI for Drug Discovery" workflow. It pro
 ## Repository Structure
 ```text
 brain-gnn-transcriptomics/
-├── config/             # Configuration files (Hydra/YAML)
+├── config/             # Configuration files (Currently empty)
 ├── data/               # Data storage (Raw and Processed)
 ├── deploy/             # Deployment configs (Docker, K8s, FastAPI)
 ├── notebooks/          # Jupyter notebooks for EDA and insights
