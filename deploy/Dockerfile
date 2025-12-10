@@ -4,7 +4,8 @@
 # docker run -p 8000:8000 brain-gnn-app
 
 # Use an official PyTorch runtime as a parent image
-FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
+# Update to CUDA 12.1 to match project requirements
+FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
 
 WORKDIR /app
 

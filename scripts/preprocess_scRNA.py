@@ -154,10 +154,7 @@ def select_hvg_gpu(adata, n_top_genes=2000, batch_size=10000):
     import torch
     
     if not torch.cuda.is_available():
-        logging.warning("No GPU for HVG selection. Falling back to CPU manual scan.")
-        # We could keep the CPU fallback here or fail. 
-        # Given the "GPU Pipeline" goal, we should fail or warn heavily.
-        return select_hvg_manual(adata, n_top_genes)
+        raise RuntimeError("No GPU detected! This pipeline requires a GPU for HVG selection.")
 
     device = torch.device("cuda")
     logging.info(f"Running GPU HVG Selection on {device}...")
