@@ -14,8 +14,8 @@ This project overcomes the memory limitations of standard single-cell workflows 
   - **Cell-Cell Graphs**: Efficient KNN graph building on PCA embeddings.
   - **Gene-Gene Graphs**: Co-expression networks derived from massive correlation matrices.
 - **Production-Grade GNNs**:
-  - **Deep Graph Infomax (DGI)** for unsupervised representation learning.
-  - **GraphSAGE / GAT** with PyTorch Lightning + DDP for distributed training.
+  - **Graph Auto-Encoder (GAE)** for unsupervised representation learning on gene networks.
+  - **GCN / GAT** with PyTorch Lightning + DDP for distributed training.
 
 ---
 
@@ -36,7 +36,7 @@ brain-gnn-transcriptomics/
 │   └── download_sea_ad.py  # Data Ingestion
 ├── src/                # Source code modules
 │   ├── data/           # Data loading and transformation
-│   ├── models/         # GNN Architectures (GCN, GAT, GraphSAGE)
+│   ├── models/         # GNN Architectures (GCN, GAT)
 │   └── training/       # Training Logic
 └── environment.yml     # Conda environment definition
 ```
@@ -109,7 +109,7 @@ Alzheimer's Disease (AD) is characterized by complex cellular interactions and g
 
 ### Core Frameworks
 - **[PyTorch](https://pytorch.org/)**: The primary deep learning framework used for all tensor operations and custom GPU kernels.
-- **[PyTorch Geometric (PyG)](https://pytorch-geometric.readthedocs.io/)**: Used for implementing GNN layers (GCN, GraphSAGE, GAT) and handling sparse graph data structures efficiently.
+- **[PyTorch Geometric (PyG)](https://pytorch-geometric.readthedocs.io/)**: Used for implementing GNN layers (GCN, GAT) and handling sparse graph data structures efficiently.
 - **[PyTorch Lightning](https://www.lightning.ai/)**: Abstracts the training loop, enabling seamless switching between CPU/GPU and simplifying distributed training (DDP).
 
 ### Bioinformatics & Data Handling
